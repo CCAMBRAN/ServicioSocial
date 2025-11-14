@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Seguros - Protección Accesible para Todos</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Navegación -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛡️ SegurosAccesibles</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#inicio" onclick="mostrarSeccion('inicio')">Inicio</a></li>
+                <li><a href="#seguros" onclick="mostrarSeccion('seguros')">Nuestros Seguros</a></li>
+                <li><a href="#registro" onclick="mostrarSeccion('registro')">Registrarse</a></li>
+                <li><a href="#dashboard" onclick="mostrarSeccion('dashboard')">Mi Dashboard</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Sección: Inicio -->
+    <section id="inicio" class="seccion activa">
+        <div class="hero">
+            <div class="hero-content">
+                <h2>Seguros de Ahorro Accesibles para Todos</h2>
+                <p>Protege a tu familia con nuestros planes económicos y flexibles</p>
+                <button class="btn btn-primary" onclick="mostrarSeccion('seguros')">Ver Nuestros Seguros</button>
+            </div>
+            <div class="hero-image">
+                <div class="feature-box">
+                    <div class="feature-icon">✓</div>
+                    <h3>100% Confiable</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Características -->
+        <div class="container">
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-number">1</div>
+                    <h3>Planes Económicos</h3>
+                    <p>Desde $25/mes - Accesible para todos</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-number">2</div>
+                    <h3>Fácil Registro</h3>
+                    <p>Regístrate en segundos sin complicaciones</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-number">3</div>
+                    <h3>Protección Real</h3>
+                    <p>Cobertura completa para tu tranquilidad</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-number">4</div>
+                    <h3>Soporte 24/7</h3>
+                    <p>Siempre disponibles para ti</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección: Nuestros Seguros -->
+    <section id="seguros" class="seccion">
+        <div class="container">
+            <h2>Nuestros Seguros</h2>
+            <p class="subtitulo">Elige el plan que mejor se adapte a tus necesidades</p>
+            
+            <div id="seguros-list" class="seguros-grid">
+                <!-- Se llena dinámicamente con JavaScript -->
+                <div class="loading">Cargando seguros...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección: Registro -->
+    <section id="registro" class="seccion">
+        <div class="container">
+            <div class="form-container">
+                <h2>Crear tu Cuenta</h2>
+                <p>Únete a miles de clientes satisfechos</p>
+                
+                <form id="form-registro" class="form">
+                    <div class="form-group">
+                        <label for="nombre">Nombre Completo</label>
+                        <input type="text" id="nombre" name="nombre" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono (Opcional)</label>
+                        <input type="tel" id="telefono" name="telefono">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Crear Cuenta</button>
+                    <p id="mensaje-registro" class="mensaje"></p>
+                </form>
+
+                <p class="info-box">
+                    ℹ️ Al registrarte, podrás ver tu perfil en el Dashboard y explorar nuestros planes de seguros.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección: Dashboard -->
+    <section id="dashboard" class="seccion">
+        <div class="container">
+            <h2>Mi Dashboard</h2>
+            
+            <div id="dashboard-content">
+                <div class="alert alert-info">
+                    ℹ️ Regístrate primero para acceder al dashboard
+                </div>
+                <button class="btn btn-primary" onclick="mostrarSeccion('registro')">Ir a Registro</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Sistema de Seguros. Protección accesible para todos.</p>
+            <p>Teléfono: +1 (555) 123-4567 | Email: contacto@segurosaccesibles.com</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

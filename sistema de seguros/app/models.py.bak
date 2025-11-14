@@ -1,0 +1,64 @@
+from sqlalchemy import Column, String, Float, DateTime, Boolean, Text, ForeignKey, Integer
+from sqlalchemy.dialects.sqlite import INTEGER
+from sqlalchemy.orm import relationship
+from .database import Base
+import datetime
+
+class Usuario(Base):
+    __tablename__ = "usuarios"
+    
+    id = Column(String(36), primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False)
+    email = Column(String(100), unique=True, index=True, nullable=False)
+    telefono = Column(String(20), nullable=True)
+    saldo = Column(Float, default=0.0)
+    fecha_registro = Column(DateTime, default=datetime.datetime.utcnow)
+    activo = Column(Boolean, default=True)
+    
+    polizas = relationship("Poliza", back_populates="usuario")
+
+class Seguro(Base):
+    __tablename__ = "seguros"
+    
+    id = Column(String(36), primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False)
+    descripcion = Column(Text)
+    duracion_meses = Column(Integer, nullable=False)
+    precio = Column(Float, nullable=False)  # Precio de compra del paquete
+    cuota_mensual = Column(Float, nullable=False)  # Cuota mensual a pagar
+    cobertura = Column(Float, nullable=False)  # Monto que cubre el seguro
+    tipo = Column(String(50), default="basico")  # basico, estandar, premium
+    beneficios = Column(Text)  # Beneficios incluidos
+    activo = Column(Boolean, default=True)
+    fecha_creacion = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    polizas = relationship("Poliza", back_populates="seguro")
+
+class Poliza(Base):
+    __tablename__ = "polizas"
+    
+    id = Column(String(36), primary_key=True, index=True)
+    usuario_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    seguro_id = Column(String(36), ForeignKey("seguros.id"), nullable=False)
+    estado = Column(String(20), default="activa")  # activa, vencida, cancelada
+    fecha_compra = Column(DateTime, default=datetime.datetime.utcnow)
+    fecha_vencimiento = Column(DateTime, nullable=False)
+    proximo_pago = Column(DateTime, nullable=False)  # Fecha del próximo pago
+    pagos_realizados = Column(Integer, default=0)
+    total_pagos = Column(Integer, nullable=False)
+    
+    usuario = relationship("Usuario", back_populates="polizas")
+    seguro = relationship("Seguro", back_populates="polizas")
+    pagos = relationship("Pago", back_populates="poliza")
+
+class Pago(Base):
+    __tablename__ = "pagos"
+    
+    id = Column(String(36), primary_key=True, index=True)
+    poliza_id = Column(String(36), ForeignKey("polizas.id"), nullable=False)
+    monto = Column(Float, nullable=False)
+    fecha_pago = Column(DateTime, default=datetime.datetime.utcnow)
+    metodo_pago = Column(String(50), default="saldo")  # saldo, transferencia, efectivo
+    estado = Column(String(20), default="completado")  # pendiente, completado, fallido
+    
+    poliza = relationship("Poliza", back_populates="pagos")
