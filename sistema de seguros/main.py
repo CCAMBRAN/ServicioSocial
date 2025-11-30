@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routes import router
 from app.database import connect_to_mongo, close_mongo_connection
+from app.database_sql import init_db_sql, close_db_sql
 from app import models
 import uvicorn
 import os
@@ -63,8 +64,8 @@ app = FastAPI(
     title="Sistema de Seguros API",
     description="Backend para sistema de seguros de ahorro",
     version="3.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
 )
 
 # Configurar CORS
@@ -76,29 +77,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Servir archivos estáticos del frontend
-frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
-if os.path.exists(frontend_path):
-    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
-
 @app.on_event("startup")
 async def startup_db_client():
+    # Conectar a MongoDB
     await connect_to_mongo()
+    print("✅ Conectado a MongoDB")
+    
+    # Inicializar MySQL
+    await init_db_sql()
+    print("✅ Conectado a MySQL")
+    
+    # Crear seguros iniciales en MongoDB
     await crear_seguros_economicos(app)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    # Cerrar MongoDB
     await close_mongo_connection()
+    print("✅ Desconectado de MongoDB")
+    
+    # Cerrar MySQL
+    await close_db_sql()
+    print("✅ Desconectado de MySQL")
 
+# Incluir rutas de la API
 app.include_router(router, prefix="/api/v1")
 
-@app.get("/")
-async def root():
-    return {
-        "mensaje": "Bienvenido al Sistema de Seguros API",
-        "version": "3.0.0",
-        "descripcion": "Sistema diseñado para hacer los seguros accesibles a todos"
-    }
+# Servir archivos estáticos del frontend (debe ir al final)
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
