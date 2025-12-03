@@ -4,13 +4,14 @@ Configuración de la conexión a MySQL usando SQLAlchemy (async)
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from typing import AsyncGenerator
+import os
 
-# Configuración de la base de datos MySQL
-MYSQL_USER = "root"
-MYSQL_PASSWORD = ""  # En XAMPP por defecto no hay password
-MYSQL_HOST = "localhost"
-MYSQL_PORT = 3306
-MYSQL_DATABASE = "seguros_db_sql"
+# Configuración de la base de datos MySQL (desde variables de entorno o defaults locales)
+MYSQL_USER = os.getenv("MYSQL_USER", "root")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")  # En XAMPP por defecto no hay password
+MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "seguros_db_sql")
 
 # URL de conexión async para MySQL
 SQLALCHEMY_DATABASE_URL = f"mysql+aiomysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
