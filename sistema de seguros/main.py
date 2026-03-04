@@ -83,9 +83,12 @@ async def startup_db_client():
     await connect_to_mongo()
     print("✅ Conectado a MongoDB")
     
-    # Inicializar MySQL
-    await init_db_sql()
-    print("✅ Conectado a MySQL")
+    # Inicializar MySQL (comentado - comentar si no necesitas MySQL)
+    try:
+        await init_db_sql()
+        print("✅ Conectado a MySQL")
+    except Exception as e:
+        print(f"⚠️  No se pudo conectar a MySQL: {e}")
     
     # Crear seguros iniciales en MongoDB
     await crear_seguros_economicos(app)
@@ -96,9 +99,12 @@ async def shutdown_db_client():
     await close_mongo_connection()
     print("✅ Desconectado de MongoDB")
     
-    # Cerrar MySQL
-    await close_db_sql()
-    print("✅ Desconectado de MySQL")
+    # Cerrar MySQL (comentado - comentar si no necesitas MySQL)
+    try:
+        await close_db_sql()
+        print("✅ Desconectado de MySQL")
+    except Exception as e:
+        print(f"⚠️  Error al cerrar MySQL: {e}")
 
 # Incluir rutas de la API
 app.include_router(router, prefix="/api/v1")
@@ -109,4 +115,5 @@ if os.path.exists(frontend_path):
     app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
