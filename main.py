@@ -1,3 +1,11 @@
+import sys
+import os
+from pathlib import Path
+
+# Agregar la ruta del proyecto al path de Python
+project_root = str(Path(__file__).parent)
+sys.path.insert(0, project_root)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -6,7 +14,6 @@ from sistema_de_seguros.app.database import connect_to_mongo, close_mongo_connec
 from sistema_de_seguros.app.database_sql import init_db_sql, close_db_sql
 from sistema_de_seguros.app import models
 import uvicorn
-import os
 
 async def crear_seguros_economicos(app: FastAPI):
     """Crear paquetes de seguros económicos automáticamente si no existen"""
