@@ -9,16 +9,16 @@ sys.path.insert(0, project_root)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sistema_de_seguros.app.routes import router
-from sistema_de_seguros.app.database import connect_to_mongo, close_mongo_connection
-from sistema_de_seguros.app.database_sql import init_db_sql, close_db_sql
-from sistema_de_seguros.app import models
+from app.routes import router
+from app.database import connect_to_mongo, close_mongo_connection
+from app.database_sql import init_db_sql, close_db_sql
+from app import models
 import uvicorn
 
 async def crear_seguros_economicos(app: FastAPI):
     """Crear paquetes de seguros económicos automáticamente si no existen"""
     from motor.motor_asyncio import AsyncIOMotorClient
-    from sistema_de_seguros.app.database import DATABASE_NAME, MONGODB_URL
+    from app.database import DATABASE_NAME, MONGODB_URL
     
     client = AsyncIOMotorClient(MONGODB_URL)
     db = client[DATABASE_NAME]
@@ -127,7 +127,7 @@ async def shutdown_db_client():
 app.include_router(router, prefix="/api/v1")
 
 # Servir archivos estáticos del frontend (debe ir al final)
-frontend_path = os.path.join(os.path.dirname(__file__), "sistema de seguros", "frontend")
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_path):
     app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
 

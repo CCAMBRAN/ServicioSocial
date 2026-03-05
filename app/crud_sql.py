@@ -4,8 +4,8 @@ Operaciones CRUD para MySQL usando SQLAlchemy (async)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, and_, or_
 from sqlalchemy.orm import selectinload
-from .models_sql import UsuarioSQL, SeguroSQL, PolizaSQL, PagoSQL, AuditoriaSQL, EstadoPoliza, EstadoPago
-from . import schemas
+from app.models_sql import UsuarioSQL, SeguroSQL, PolizaSQL, PagoSQL, AuditoriaSQL, EstadoPoliza, EstadoPago
+from app import schemas
 from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
