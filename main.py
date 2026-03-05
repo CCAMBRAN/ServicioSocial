@@ -88,8 +88,11 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_db_client():
     # Conectar a MongoDB
-    await connect_to_mongo()
-    print("✅ Conectado a MongoDB")
+    try:
+        await connect_to_mongo()
+        print("✅ Conectado a MongoDB")
+    except Exception as e:
+        print(f"⚠️  No se pudo conectar a MongoDB: {e}")
     
     # Inicializar MySQL (comentado - comentar si no necesitas MySQL)
     try:
@@ -99,13 +102,19 @@ async def startup_db_client():
         print(f"⚠️  No se pudo conectar a MySQL: {e}")
     
     # Crear seguros iniciales en MongoDB
-    await crear_seguros_economicos(app)
+    try:
+        await crear_seguros_economicos(app)
+    except Exception as e:
+        print(f"⚠️  No se pudieron crear seguros iniciales: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     # Cerrar MongoDB
-    await close_mongo_connection()
-    print("✅ Desconectado de MongoDB")
+    try:
+        await close_mongo_connection()
+        print("✅ Desconectado de MongoDB")
+    except Exception as e:
+        print(f"⚠️  Error al cerrar MongoDB: {e}")
     
     # Cerrar MySQL (comentado - comentar si no necesitas MySQL)
     try:
