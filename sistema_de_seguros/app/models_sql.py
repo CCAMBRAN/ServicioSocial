@@ -5,7 +5,7 @@ Define las tablas y relaciones del sistema de seguros
 from sqlalchemy import Column, String, Numeric, Integer, Boolean, DateTime, Text, ForeignKey, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.database_sql import Base
+from .database_sql import Base
 import enum
 
 

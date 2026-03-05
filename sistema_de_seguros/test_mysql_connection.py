@@ -2,7 +2,7 @@
 Script para probar la conexión a MySQL y crear las tablas
 """
 import asyncio
-from app.database_sql import init_db_sql, test_connection, close_db_sql
+from .app.database_sql import init_db_sql, test_connection, close_db_sql
 
 
 async def main():
