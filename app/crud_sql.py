@@ -22,6 +22,7 @@ async def crear_usuario_sql(db: AsyncSession, usuario: schemas.UsuarioCreate) ->
         nombre=usuario.nombre,
         email=usuario.email,
         telefono=usuario.telefono,
+        tipo_usuario=usuario.tipo_usuario,
         saldo=500.00,
         activo=True
     )
@@ -133,11 +134,12 @@ async def obtener_seguros_sql(db: AsyncSession) -> List[SeguroSQL]:
 
 async def crear_poliza_sql(
     db: AsyncSession,
-    usuario_id: str,
+    beneficiario_id: str,
     seguro_id: str,
     monto_total: float,
     cuota_mensual: float,
-    duracion_meses: int
+    duracion_meses: int,
+    fondeador_id: Optional[str] = None
 ) -> PolizaSQL:
     """Crear una nueva póliza"""
     fecha_inicio = datetime.now()
@@ -145,7 +147,8 @@ async def crear_poliza_sql(
     
     db_poliza = PolizaSQL(
         id=str(uuid.uuid4()),
-        usuario_id=usuario_id,
+        beneficiario_id=beneficiario_id,
+        fondeador_id=fondeador_id,
         seguro_id=seguro_id,
         estado=EstadoPoliza.ACTIVA,
         fecha_inicio=fecha_inicio,
@@ -162,11 +165,16 @@ async def crear_poliza_sql(
     # Auditoría
     await crear_auditoria_sql(
         db,
-        usuario_id=usuario_id,
+        usuario_id=beneficiario_id,
         accion="CREATE_POLIZA",
         tabla="polizas",
         registro_id=db_poliza.id,
-        datos_nuevos={"seguro_id": seguro_id, "monto_total": monto_total}
+        datos_nuevos={
+            "beneficiario_id": beneficiario_id,
+            "fondeador_id": fondeador_id,
+            "seguro_id": seguro_id,
+            "monto_total": monto_total
+        }
     )
     
     return db_poliza
@@ -176,18 +184,18 @@ async def obtener_poliza_sql(db: AsyncSession, poliza_id: str) -> Optional[Poliz
     """Obtener una póliza por ID con sus relaciones"""
     result = await db.execute(
         select(PolizaSQL)
-        .options(selectinload(PolizaSQL.usuario), selectinload(PolizaSQL.seguro))
+        .options(selectinload(PolizaSQL.beneficiario), selectinload(PolizaSQL.fondeador), selectinload(PolizaSQL.seguro))
         .where(PolizaSQL.id == poliza_id)
     )
     return result.scalar_one_or_none()
 
 
 async def obtener_polizas_usuario_sql(db: AsyncSession, usuario_id: str) -> List[PolizaSQL]:
-    """Obtener todas las pólizas de un usuario"""
+    """Obtener todas las pólizas de un usuario (como beneficiario)"""
     result = await db.execute(
         select(PolizaSQL)
         .options(selectinload(PolizaSQL.seguro))
-        .where(PolizaSQL.usuario_id == usuario_id)
+        .where(PolizaSQL.beneficiario_id == usuario_id)
         .order_by(PolizaSQL.fecha_inicio.desc())
     )
     return result.scalars().all()
@@ -217,7 +225,8 @@ async def crear_pago_sql(
     poliza_id: str,
     usuario_id: str,
     monto: float,
-    numero_cuota: int
+    numero_cuota: int,
+    tipo_pago: str = "cuota_mensual"
 ) -> PagoSQL:
     """Registrar un pago de cuota"""
     db_pago = PagoSQL(
@@ -227,7 +236,8 @@ async def crear_pago_sql(
         monto=monto,
         metodo_pago="saldo",
         estado=EstadoPago.COMPLETADO,
-        numero_cuota=numero_cuota
+        numero_cuota=numero_cuota,
+        tipo_pago=tipo_pago
     )
     db.add(db_pago)
     await db.commit()
@@ -240,7 +250,12 @@ async def crear_pago_sql(
         accion="CREATE_PAGO",
         tabla="pagos",
         registro_id=db_pago.id,
-        datos_nuevos={"poliza_id": poliza_id, "monto": monto, "cuota": numero_cuota}
+        datos_nuevos={
+            "poliza_id": poliza_id,
+            "monto": monto,
+            "cuota": numero_cuota,
+            "tipo_pago": tipo_pago
+        }
     )
     
     return db_pago

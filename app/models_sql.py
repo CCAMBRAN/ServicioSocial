@@ -15,6 +15,9 @@ class EstadoPoliza(str, enum.Enum):
     VENCIDA = "vencida"
     CANCELADA = "cancelada"
 
+class TipoUsuario(str, enum.Enum):
+    FONDEADOR = "fondeador"
+    BENEFICIARIO = "beneficiario"
 
 class EstadoPago(str, enum.Enum):
     COMPLETADO = "completado"
@@ -35,9 +38,11 @@ class UsuarioSQL(Base):
     saldo = Column(Numeric(10, 2), default=500.00)
     activo = Column(Boolean, default=True, index=True)
     fecha_registro = Column(DateTime, server_default=func.now())
+    tipo_usuario = Column(String(20), default="beneficiario", index=True)  # "fondador" o "beneficiario"
     
     # Relaciones
-    polizas = relationship("PolizaSQL", back_populates="usuario", cascade="all, delete-orphan")
+    polizas_beneficiario = relationship("PolizaSQL", foreign_keys="PolizaSQL.beneficiario_id", back_populates="beneficiario")
+    polizas_fondeador = relationship("PolizaSQL", foreign_keys="PolizaSQL.fondeador_id", back_populates="fondeador")
     pagos = relationship("PagoSQL", back_populates="usuario", cascade="all, delete-orphan")
     auditorias = relationship("AuditoriaSQL", back_populates="usuario")
     
@@ -76,7 +81,8 @@ class PolizaSQL(Base):
     __tablename__ = "polizas"
     
     id = Column(String(36), primary_key=True)
-    usuario_id = Column(String(36), ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    beneficiario_id = Column(String(36), ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    fondeador_id = Column(String(36), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True, index=True)
     seguro_id = Column(String(36), ForeignKey("seguros.id", ondelete="RESTRICT"), nullable=False, index=True)
     estado = Column(SQLEnum(EstadoPoliza), default=EstadoPoliza.ACTIVA, index=True)
     fecha_inicio = Column(DateTime, server_default=func.now(), index=True)
@@ -87,12 +93,13 @@ class PolizaSQL(Base):
     cuotas_totales = Column(Integer, nullable=False)
     
     # Relaciones
-    usuario = relationship("UsuarioSQL", back_populates="polizas")
+    beneficiario = relationship("UsuarioSQL", foreign_keys=[beneficiario_id], back_populates="polizas_beneficiario")
+    fondeador = relationship("UsuarioSQL", foreign_keys=[fondeador_id], back_populates="polizas_fondeador")
     seguro = relationship("SeguroSQL", back_populates="polizas")
     pagos = relationship("PagoSQL", back_populates="poliza", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Poliza(id={self.id}, usuario_id={self.usuario_id}, estado={self.estado})>"
+        return f"<Poliza(id={self.id}, beneficiario_id={self.beneficiario_id}, estado={self.estado})>"
 
 
 # ============================================
@@ -109,6 +116,7 @@ class PagoSQL(Base):
     metodo_pago = Column(String(50), default="saldo")
     estado = Column(SQLEnum(EstadoPago), default=EstadoPago.COMPLETADO, index=True)
     numero_cuota = Column(Integer, nullable=False)
+    tipo_pago = Column(String(20), default="cuota_mensual", index=True)
     
     # Relaciones
     poliza = relationship("PolizaSQL", back_populates="pagos")

@@ -53,6 +53,7 @@ async def crear_usuario(
         nombre=db_usuario.nombre,
         email=db_usuario.email,
         telefono=db_usuario.telefono,
+        tipo_usuario=db_usuario.tipo_usuario,
         saldo=float(db_usuario.saldo),
         activo=db_usuario.activo,
         fecha_registro=db_usuario.fecha_registro
@@ -74,6 +75,7 @@ async def listar_usuarios(
             nombre=u.nombre,
             email=u.email,
             telefono=u.telefono,
+            tipo_usuario=u.tipo_usuario,
             saldo=float(u.saldo),
             activo=u.activo,
             fecha_registro=u.fecha_registro
@@ -97,15 +99,16 @@ async def obtener_usuario(
         nombre=usuario.nombre,
         email=usuario.email,
         telefono=usuario.telefono,
+        tipo_usuario=usuario.tipo_usuario,
         saldo=float(usuario.saldo),
         activo=usuario.activo,
         fecha_registro=usuario.fecha_registro
     )
 
 # Routes para Compra y Pagos (SISTEMA HÍBRIDO: MySQL + MongoDB)
-@router.post("/usuarios/{usuario_id}/comprar-seguro")
+@router.post("/usuarios/{beneficiario_id}/comprar-seguro")
 async def comprar_seguro(
-    usuario_id: str, 
+    beneficiario_id: str, 
     compra: schemas.CompraSeguroRequest, 
     db_mongo: AsyncIOMotorDatabase = Depends(database.get_db),
     db_sql: AsyncSession = Depends(database_sql.get_db_sql)
@@ -115,31 +118,38 @@ async def comprar_seguro(
     - Usuario y Póliza: MySQL
     - Seguro: MongoDB
     """
-    # 1. Obtener usuario de MySQL
-    usuario = await crud_sql.obtener_usuario_sql(db_sql, usuario_id)
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    # 1. Obtener BENEFICIARIO de MySQL
+    beneficiario = await crud_sql.obtener_usuario_sql(db_sql, beneficiario_id)
+    if not beneficiario:
+        raise HTTPException(status_code=404, detail="Beneficiario no encontrado")
     
     # 2. Obtener seguro de MongoDB
     seguro = await db_mongo.seguros.find_one({"id": compra.seguro_id, "activo": True})
     if not seguro:
         raise HTTPException(status_code=404, detail="Seguro no encontrado")
     
-    # 3. Verificar saldo suficiente
-    if usuario.saldo < seguro["precio"]:
+    # 3. Verificar quién paga (fondeador o beneficiario)
+    usuario_pagador_id = compra.fondeador_id or beneficiario_id
+    usuario_pagador = await crud_sql.obtener_usuario_sql(db_sql, usuario_pagador_id)
+    if not usuario_pagador:
+        raise HTTPException(status_code=404, detail="Usuario pagador no encontrado")
+    
+    # 4. Verificar saldo suficiente
+    if usuario_pagador.saldo < seguro["precio"]:
         raise HTTPException(
             status_code=400, 
-            detail=f"Saldo insuficiente. Necesitas ${seguro['precio']}, tienes ${usuario.saldo}"
+            detail=f"Saldo insuficiente. Necesitas ${seguro['precio']}, tienes ${usuario_pagador.saldo}"
         )
     
-    # 4. Descontar pago inicial del saldo
-    nuevo_saldo = float(usuario.saldo) - seguro["precio"]
-    await crud_sql.actualizar_saldo_usuario_sql(db_sql, usuario_id, nuevo_saldo)
+    # 5. Descontar pago inicial del saldo
+    nuevo_saldo = float(usuario_pagador.saldo) - seguro["precio"]
+    await crud_sql.actualizar_saldo_usuario_sql(db_sql, usuario_pagador_id, nuevo_saldo)
     
-    # 5. Crear póliza en MySQL
+    # 6. Crear póliza en MySQL
     poliza = await crud_sql.crear_poliza_sql(
         db_sql,
-        usuario_id=usuario_id,
+        beneficiario_id=beneficiario_id,
+        fondeador_id=compra.fondeador_id if compra.fondeador_id != beneficiario_id else None,
         seguro_id=compra.seguro_id,
         monto_total=seguro["precio"],
         cuota_mensual=seguro["cuota_mensual"],
@@ -149,8 +159,11 @@ async def comprar_seguro(
     return {
         "mensaje": "Seguro comprado exitosamente",
         "poliza_id": poliza.id,
+        "beneficiario_id": beneficiario_id,
+        "fondeador_id": compra.fondeador_id,
         "seguro_nombre": seguro["nombre"],
         "monto_pagado": seguro["precio"],
+        "usuario_pagador_id": usuario_pagador_id,
         "nuevo_saldo": nuevo_saldo,
         "cuota_mensual": seguro["cuota_mensual"],
         "cuotas_totales": seguro["duracion_meses"]
@@ -175,28 +188,32 @@ async def pagar_cuota_mensual(
     if poliza.cuotas_pagadas >= poliza.cuotas_totales:
         raise HTTPException(status_code=400, detail="Ya se pagaron todas las cuotas de esta póliza")
     
-    # 3. Obtener usuario
-    usuario = await crud_sql.obtener_usuario_sql(db_sql, poliza.usuario_id)
+    # 3. Determinar quién paga (fondeador o beneficiario)
+    usuario_pagador_id = getattr(pago, 'usuario_pagador_id', None) or poliza.fondeador_id or poliza.beneficiario_id
+    usuario_pagador = await crud_sql.obtener_usuario_sql(db_sql, usuario_pagador_id)
+    if not usuario_pagador:
+        raise HTTPException(status_code=404, detail="Usuario pagador no encontrado")
     
     # 4. Verificar saldo suficiente
-    if usuario.saldo < poliza.cuota_mensual:
+    if usuario_pagador.saldo < poliza.cuota_mensual:
         raise HTTPException(
             status_code=400,
-            detail=f"Saldo insuficiente. Necesitas ${poliza.cuota_mensual}, tienes ${usuario.saldo}"
+            detail=f"Saldo insuficiente. Necesitas ${poliza.cuota_mensual}, tienes ${usuario_pagador.saldo}"
         )
     
     # 5. Descontar cuota del saldo
-    nuevo_saldo = float(usuario.saldo) - float(poliza.cuota_mensual)
-    await crud_sql.actualizar_saldo_usuario_sql(db_sql, poliza.usuario_id, nuevo_saldo)
+    nuevo_saldo = float(usuario_pagador.saldo) - float(poliza.cuota_mensual)
+    await crud_sql.actualizar_saldo_usuario_sql(db_sql, usuario_pagador_id, nuevo_saldo)
     
     # 6. Registrar pago
     numero_cuota = poliza.cuotas_pagadas + 1
     pago_registro = await crud_sql.crear_pago_sql(
         db_sql,
         poliza_id=poliza_id,
-        usuario_id=poliza.usuario_id,
+        usuario_id=usuario_pagador_id,
         monto=float(poliza.cuota_mensual),
-        numero_cuota=numero_cuota
+        numero_cuota=numero_cuota,
+        tipo_pago="cuota_mensual"
     )
     
     # 7. Actualizar cuotas pagadas en póliza
@@ -207,6 +224,7 @@ async def pagar_cuota_mensual(
         "pago_id": pago_registro.id,
         "numero_cuota": numero_cuota,
         "monto_pagado": float(poliza.cuota_mensual),
+        "usuario_pagador_id": usuario_pagador_id,
         "nuevo_saldo": nuevo_saldo,
         "cuotas_pagadas": poliza_actualizada.cuotas_pagadas,
         "cuotas_totales": poliza_actualizada.cuotas_totales,

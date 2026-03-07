@@ -1,18 +1,21 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 
+
 # Usuarios
+
 class UsuarioBase(BaseModel):
     nombre: str
     email: EmailStr
     telefono: Optional[str] = None
 
 class UsuarioCreate(UsuarioBase):
-    pass
+    tipo_usuario: Literal["fondeador", "beneficiario"] 
 
 class Usuario(UsuarioBase):
     id: str
+    tipo_usuario: Literal["fondeador", "beneficiario"]
     saldo: float
     fecha_registro: datetime
     activo: bool
@@ -44,20 +47,22 @@ class Seguro(SeguroBase):
 
 # Pólizas
 class PolizaBase(BaseModel):
-    usuario_id: str
+    beneficiario_id: str
     seguro_id: str
 
 class PolizaCreate(PolizaBase):
-    pass
+    fondeador_id: Optional[str] = None
 
 class Poliza(PolizaBase):
     id: str
+    fondeador_id: Optional[str] = None
     estado: str
-    fecha_compra: datetime
-    fecha_vencimiento: datetime
-    proximo_pago: datetime
-    pagos_realizados: int
-    total_pagos: int
+    fecha_inicio: datetime
+    fecha_fin: Optional[datetime]
+    monto_total: float
+    cuota_mensual: float
+    cuotas_pagadas: int
+    cuotas_totales: int
     
     class Config:
         from_attributes = True
@@ -65,16 +70,20 @@ class Poliza(PolizaBase):
 # Pagos
 class PagoBase(BaseModel):
     poliza_id: str
+    usuario_id: str
     monto: float
-    metodo_pago: str
 
-class PagoCreate(PagoBase):
-    pass
+class PagoCreate(BaseModel):
+    numero_cuota: int
+    tipo_pago: str = "cuota_mensual"
 
 class Pago(PagoBase):
     id: str
     fecha_pago: datetime
+    numero_cuota: int
+    tipo_pago: str
     estado: str
+    metodo_pago: str
     
     class Config:
         from_attributes = True
@@ -85,10 +94,12 @@ class DepositoRequest(BaseModel):
 
 class CompraSeguroRequest(BaseModel):
     seguro_id: str
+    fondeador_id: Optional[str] = None
 
 class PagoCuotaRequest(BaseModel):
     poliza_id: str
     metodo_pago: str = "saldo"
+    usuario_pagador_id: Optional[str] = None
 
 # Respuestas detalladas
 class PolizaDetalle(Poliza):
